@@ -1,4 +1,4 @@
-#summary One-sentence summary of this page.
+#summary Install and setup
 
 You can install the `Django Dynamic Media Serve` easily.
 
@@ -54,7 +54,5 @@ spike@spike:~/django-runtime$ django-admin.py runserver
 and then copy the image or any other files to `document_root` directory and check it in your web browser, http://<your IP>/__media__/<your file>
 
 All is completed.
-
-
 
 
