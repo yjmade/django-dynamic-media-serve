@@ -1,1 +1,48 @@
 #summary How to use django-dynamic-media-serve in real world.
+
+After install the Django and `Django Dynamic Media Serve`, run or restart your web server.
+
+= Post Installation =
+== Locate Your Media ==
+All the media files must be located in `document_root` directory of `urls.py`. This is my `urls.py` conf.
+{{{
+from django.conf.urls.defaults import *
+
+urlpatterns = patterns('',
+        # Uncomment this for admin:
+        #(r'^admin/', include('django.contrib.admin.urls')),
+        (r"^__media__/(?P<path>.*)$", 
+                "dynamic_media_serve.serve", {"document_root": "/home/spike/django-runtime/__media__"}
+    ),
+)
+}}}
+I set the `document_root` to `/home/spike/django-runtime/__media__` and I copy my media files to this directory.
+{{{
+spike@spike:~/django-runtime$ mkdir __media__
+spike@spike:~/django-runtime$ cp /tmp/my_images/frontpage.png __media__
+}}}
+
+== Open up Your Browser and Check it ==
+Open the location, `http://<domain>/__media__/frontpage.png`.
+Do you see your image?
+
+= Get Dynamically Resizing Image =
+*Available Query String*
+|| *key* || *type* || *description* ||
+|| width || integer || thumbnail image width ||
+|| height || integer || thumbnail image height ||
+|| mode || 'ratio'(default), 'sooa' || thumbnail style ||
+
+== Creating By Image Size Ratio ==
+ * `http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=ratio` : full query
+ * `http://<domain>/__media__/frontpage.png?width=<new width>&mode=ratio` : only width
+ * `http://<domain>/__media__/frontpage.png?height=<new height>&mode=ratio` : only height
+
+== Creating Flicker Style Thumbnail ==
+`http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=sooa`
+
+
+= Get The Compressed Javascript File =
+*Available Query String*
+|| *key* || *type* || *description* ||
+|| compress || 'true', 'on', '1' || set whether compress the script file or not ||
