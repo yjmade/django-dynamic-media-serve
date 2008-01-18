@@ -60,9 +60,9 @@ def serve(request, path, document_root=None, show_indexes=False):
 
 	## Respect the If-Modified-Since header.
 	statobj = os.stat(fullpath)
-	#if not django_static.was_modified_since(request.META.get("HTTP_IF_MODIFIED_SINCE"),
-	#						  statobj[stat.ST_MTIME], statobj[stat.ST_SIZE]):
-	#	return HttpResponseNotModified()
+	if not django_static.was_modified_since(request.META.get("HTTP_IF_MODIFIED_SINCE"),
+							  statobj[stat.ST_MTIME], statobj[stat.ST_SIZE]):
+		return HttpResponseNotModified()
 
 	mimetype = mimetypes.guess_type(fullpath)[0]
 
