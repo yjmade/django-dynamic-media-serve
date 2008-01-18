@@ -26,7 +26,18 @@ import urllib
 
 from django.utils.text import compress_string as django_compress_string
 from django.views import static as django_static
-from django.conf import settings as django_settings
+from django.core.cache import cache
+from django.conf import settings
+
+if hasattr(settings, "CACHE_MIDDLEWARE_SECONDS") :
+	CACHE_MIDDLEWARE_SECONDS = settings.CACHE_MIDDLEWARE_SECONDS
+else :
+	CACHE_MIDDLEWARE_SECONDS = 10
+
+if hasattr(settings, "DEFAULT_MODE") :
+	DEFAULT_MODE = settings.DEFAULT_MODE
+else :
+	DEFAULT_MODE = "ratio"
 
 try :
 	from jsmin import jsmin
@@ -39,17 +50,11 @@ def serve(request, path, document_root=None, show_indexes=False):
 	__argument = request.GET.copy()
 
 	__compress = __argument.get("compress", "").lower()
-
 	if __compress not in ("gzip", "deflate", ) :
-		__compress = False
+		__compress = None
 	else :
-		__compress_supported = request.META.get("HTTP_ACCEPT_ENCODING", "").split(",")
-		if (
-				"gzip" not in __compress_supported
-				and
-				"deflate" not in __compress_supported
-			) :
-			__compress = False
+		if True not in [i == __compress for i in request.META.get("HTTP_ACCEPT_ENCODING", "").split(",")] :
+			__compress = None
 
 	fullpath = os.path.join(document_root, path)
 	if os.path.isdir(fullpath):
@@ -60,9 +65,16 @@ def serve(request, path, document_root=None, show_indexes=False):
 
 	## Respect the If-Modified-Since header.
 	statobj = os.stat(fullpath)
-	if not django_static.was_modified_since(request.META.get("HTTP_IF_MODIFIED_SINCE"),
-							  statobj[stat.ST_MTIME], statobj[stat.ST_SIZE]):
+	if not django_static.was_modified_since(
+			request.META.get("HTTP_IF_MODIFIED_SINCE"),
+			statobj[stat.ST_MTIME], statobj[stat.ST_SIZE]) :
 		return HttpResponseNotModified()
+
+    # We use cache. If you did not enable the caching, nothing will be happended.
+	__path_cache = urllib.quote("%s?%s" % (path, __argument.urlencode()), "")
+	__response = cache.get(__path_cache)
+	if __response :
+		return __response
 
 	mimetype = mimetypes.guess_type(fullpath)[0]
 
@@ -76,9 +88,9 @@ def serve(request, path, document_root=None, show_indexes=False):
 	if __compress :
 		response["Content-Encoding"] = __compress
 
-	return response
+	cache.set(__path_cache, response, CACHE_MIDDLEWARE_SECONDS)
 
-DEFAULT_MODE = "ratio"
+	return response
 
 def compress_string (s, mode="gzip") :
 	if mode == "gzip" :
@@ -88,7 +100,7 @@ def compress_string (s, mode="gzip") :
 	else :
 		return s
 
-def func_image (request, path, mimetype) :
+def func_image (request, path) :
 	__argument = request.GET.copy()
 
 	__mode = __argument.get("mode", )
@@ -122,13 +134,13 @@ def func_image (request, path, mimetype) :
 
 	return open(path, "rb").read()
 
-def func_text_javascript (request, path) :
+def func_application_x__javascript (request, path) :
 	return jsmin(file(path).read())
 
-def func_text_html (request, path, mimetype) :
+def func_text_html (request, path) :
 	return open(path, "rb").read()
 
-def func_default (request, path, mimetype) :
+def func_default (request, path) :
 	return open(path, "rb").read()
 
 def get_media (request, path, mimetype="text/plain") :
@@ -140,7 +152,7 @@ def get_media (request, path, mimetype="text/plain") :
 		__media_type = mimetype.split("/")[0]
 		fn = globals().get("func_%s" % __media_type, func_default)
 
-	return fn(request, path, mimetype)
+	return fn(request, path)
 
 
 """
