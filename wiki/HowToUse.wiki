@@ -45,4 +45,4 @@ Do you see your image?
 = Get The Compressed Javascript File =
 *Available Query String*
 || *key* || *type* || *description* ||
-|| compress || 'true', 'on', '1' || set whether compress the script file or not ||
+|| compress || 'gzip', 'deflate' || set whether compress the script file or not ||
