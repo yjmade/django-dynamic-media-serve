@@ -135,6 +135,9 @@ def resize_image (path, size=(200, 200), mode="ratio", direction="center") :
 
 		im.save(__path, **im.info)
 
-	return open(__path, "rb").read()
+	contents = open(__path, "rb").read()
+	os.remove(__path)
+
+	return contents
 
 
