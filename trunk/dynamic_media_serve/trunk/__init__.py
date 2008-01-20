@@ -18,11 +18,11 @@
 """
 
 from django.http import Http404, HttpResponse, HttpResponseNotModified
-import mimetypes
-import os, zlib
+import mimetypes, time
+import os, zlib, sha, random
 import rfc822
 import stat
-import urllib
+import urllib, urllib2
 
 from django.utils.text import compress_string as django_compress_string
 from django.views import static as django_static
@@ -56,34 +56,37 @@ def serve(request, path, document_root=None, show_indexes=False):
 		if True not in [i == __compress for i in request.META.get("HTTP_ACCEPT_ENCODING", "").split(",")] :
 			__compress = None
 
-	fullpath = os.path.join(document_root, path)
-	if os.path.isdir(fullpath):
-		raise Http404, "Directory indexes are not allowed here."
+	if path.startswith("http%3A%2F%2F") :
+		fullpath =  urllib.unquote(path)
+		func_get_media = get_media_external
+	else :
+		fullpath = os.path.join(document_root, path)
+		if os.path.isdir(fullpath):
+			raise Http404, "Directory indexes are not allowed here."
 
-	if not os.path.exists(fullpath):
-		raise Http404, "'%s' does not exist" % fullpath
+		if not os.path.exists(fullpath):
+			raise Http404, "'%s' does not exist" % fullpath
+
+		func_get_media = get_media_internal
+
+	(contents, mimetype, status_code, last_modified, ) = func_get_media(
+		request, fullpath)
 
 	## Respect the If-Modified-Since header.
-	statobj = os.stat(fullpath)
-	if not django_static.was_modified_since(
-			request.META.get("HTTP_IF_MODIFIED_SINCE"),
-			statobj[stat.ST_MTIME], statobj[stat.ST_SIZE]) :
+	if status_code == 304 :
 		return HttpResponseNotModified()
 
     # We use cache. If you did not enable the caching, nothing will be happended.
-	__path_cache = urllib.quote("%s?%s" % (path, __argument.urlencode()), "")
+	__path_cache = urllib.quote("%s?%s" % (fullpath, __argument.urlencode()), "")
 	__response = cache.get(__path_cache)
 	if __response :
 		return __response
 
-	mimetype = mimetypes.guess_type(fullpath)[0]
-
-	contents = get_media(request, fullpath, mimetype)
 	response = HttpResponse(
 		__compress and compress_string(contents, __compress) or contents,
 		mimetype=mimetype
 	)
-	response["Last-Modified"] = rfc822.formatdate(statobj[stat.ST_MTIME])
+	response["Last-Modified"] = last_modified
 
 	if __compress :
 		response["Content-Encoding"] = __compress
@@ -123,7 +126,8 @@ def func_image (request, path) :
 
 	if __width or __height :
 		try :
-			return image.resize_image(path,
+			return image.resize_image(
+				path,
 				(__width, __height, ),
 				mode=__mode,
 				direction=__direction
@@ -143,16 +147,73 @@ def func_text_html (request, path) :
 def func_default (request, path) :
 	return open(path, "rb").read()
 
-def get_media (request, path, mimetype="text/plain") :
-	# get media type
-	__media_type = "func_%s" % mimetype.replace("/", "_").replace("-", "__")
-	if globals().has_key(__media_type) :
-		fn = globals().get(__media_type)
-	else :
-		__media_type = mimetype.split("/")[0]
-		fn = globals().get("func_%s" % __media_type, func_default)
+def get_media_external (request, path) :
+	req = urllib2.Request(path)
+	if request.META.get("HTTP_REFERER", None) :
+		req.add_header("Referer", request.META.get("HTTP_REFERER"))
 
-	return fn(request, path)
+	if request.META.get("HTTP_IF_MODIFIED_SINCE", None) :
+		req.add_header(
+			"If-Modified-Since",
+			request.META.get("HTTP_IF_MODIFIED_SINCE")
+		)
+
+	try :
+		r = urllib2.urlopen(req)
+	except urllib2.HTTPError, e :
+		(contents, mimetype, status_code, last_modified, ) = (
+			None, None, e.code, e.headers.getheader("last-modified"), )
+	else :
+		mimetype = r.headers.getheader("content-type")
+		# save in tmp
+		path = "/tmp/%s%s" % (
+				sha.new(str(random.random())).hexdigest(),
+				mimetypes.guess_extension(mimetype)
+			)
+		tmp = file(path, "w")
+		tmp.write(r.read())
+		tmp.close()
+
+		last_modified = r.headers.getheader("last-modified")
+		status_code = 200
+
+		__media_type = "func_%s" % mimetype.replace("/", "_").replace("-", "__")
+		if globals().has_key(__media_type) :
+			fn = globals().get(__media_type)
+		else :
+			__media_type = mimetype.split("/")[0]
+			fn = globals().get("func_%s" % __media_type, func_default)
+
+		contents = fn(request, path)
+		os.remove(path)
+
+	return (contents, mimetype, status_code, last_modified, )
+
+def get_media_internal (request, path) :
+	statobj = os.stat(path)
+	(st_mtime, st_size, ) = (statobj[stat.ST_MTIME], statobj[stat.ST_SIZE], )
+
+	if not django_static.was_modified_since(
+			request.META.get("HTTP_IF_MODIFIED_SINCE", None), st_mtime, st_size) :
+		status_code = 304
+		mimetype = None
+		contents = None
+	else :
+		status_code = 200
+
+		# get media type
+		mimetype = mimetypes.guess_type(path)[0]
+
+		__media_type = "func_%s" % mimetype.replace("/", "_").replace("-", "__")
+		if globals().has_key(__media_type) :
+			fn = globals().get(__media_type)
+		else :
+			__media_type = mimetype.split("/")[0]
+			fn = globals().get("func_%s" % __media_type, func_default)
+
+		contents = fn(request, path)
+
+	return (contents, mimetype, status_code, rfc822.formatdate(st_mtime), )
 
 
 """
