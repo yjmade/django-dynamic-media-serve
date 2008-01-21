@@ -50,5 +50,5 @@ Do you see your image?
 = Access and Fetch the External Media ==
 It's so simple and support all feature of `Django Dynamic Media Serve`. 
 {{{
-http://<domain>/__media__/<base64 encoded URL>?<Available Query String>
+http://<domain>/__media__/<base64 encoded URL>?<available query string>
 }}}
