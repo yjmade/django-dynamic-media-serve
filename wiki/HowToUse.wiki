@@ -46,3 +46,9 @@ Do you see your image?
 *Available Query String*
 || *key* || *type* || *description* ||
 || compress || 'gzip', 'deflate' || set whether compress the script file or not ||
+
+= Access and Fetch the External Media ==
+It's so simple and support all feature of `Django Dynamic Media Serve`. 
+{{{
+http://<domain>/__media__/<base64 encoded URL>?<Available Query String>
+}}}
