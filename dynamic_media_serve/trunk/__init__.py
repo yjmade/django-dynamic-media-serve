@@ -232,9 +232,4 @@ Usage
 """
 
 __author__ =  "Spike^ekipS <spikeekips@gmail.com>"
-__version__=  "0.1"
-__nonsense__ = ""
-
-__file__ = "__init__.py"
-
 
