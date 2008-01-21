@@ -209,24 +209,5 @@ if __name__ == "__main__" :
 	jsm.minify(sys.stdin, sys.stdout)
 
 
-"""
-Description
------------
-
-
-ChangeLog
----------
-
-
-Usage
------
-
-
-"""
-
 __author__ =  "Spike^ekipS <spikeekips@gmail.com>"
-__version__=  "0.1"
-__nonsense__ = ""
-
-
 
