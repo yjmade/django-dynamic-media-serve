@@ -47,8 +47,54 @@ Do you see your image?
 || *key* || *type* || *description* ||
 || compress || 'gzip', 'deflate' || set whether compress the script file or not ||
 
+
 = Access and Fetch the External Media ==
 It's so simple and support all feature of `Django Dynamic Media Serve`. 
 {{{
 http://<domain>/__media__/<base64 encoded URL>?<available query string>
 }}}
+
+== Cross-Domain Access ==
+Most of the decent web browsers in these days can not allow to access the url over the domains like this. For examples, I run this script in <my domain>.com.
+{{{
+Ajax.Request(
+ "http://<my domain>.com/get_my_profile/",
+ {
+  onComplete: function(request)
+  {
+    alert("success");
+  }
+);
+}}}
+it's ok, but this could not work,
+{{{
+Ajax.Request(
+ "http://<my other managed domain>.com/get_my_profile/",
+ {
+  onFailure: function(request)
+  {
+    alert("failed to access");
+  },
+  onComplete: function(request)
+  {
+    alert("success");
+  }
+);
+}}}
+
+In this case, `Django Dynamic Media Serve` can give you the another way to access the other domains like this,
+{{{
+Ajax.Request(
+ "http://<domain>/__media__/http%3A%2F%2F<my other managed domain>.com%2Fget_my_profile%2F",
+ {
+  onFailure: function(request)
+  {
+    alert("failed to access");
+  },
+  onComplete: function(request)
+  {
+    alert("success");
+  }
+);
+}}}
+The original url, `http://<my other managed domain>.com/get_my_profile/` was changed to `http%3A%2F%2F<my other managed domain>.com%2Fget_my_profile%2F`. To be clearly handle the URI, `Django Dynamic Media Serve` only get the `base64` encoded URI.
