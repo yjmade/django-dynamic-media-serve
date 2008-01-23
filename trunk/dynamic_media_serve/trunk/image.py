@@ -97,6 +97,9 @@ def resize_image (path, size=(200, 200), mode="ratio", direction="center") :
 	if w_new > w and h_new > h :
 		return open(path, "rb").read()
 
+	if not w_new or not h_new :
+		mode="ratio"
+
 	#if (w_new is not None or h_new is not None) and mode == "sooa" :
 
 	if (w_new is not None or h_new is not None) and mode == "sooa" :
