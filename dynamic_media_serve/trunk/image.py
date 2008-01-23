@@ -71,10 +71,10 @@ def get_image_offset_sooa (size_orig, size_new, direction="center") :
 			__offset_y1,
 		)
 	else : # height == width
-		__offset_x0 = (w / 2) - (w_new - 2)
+		__offset_x0 = (w / 2) - (w_new / 2)
 		__offset_x1 = __offset_x0 + w_new
 
-		__offset_y0 = (h / 2) - (h_new - 2)
+		__offset_y0 = (h / 2) - (h_new / 2)
 		__offset_y1 = __offset_y0 + h_new
 
 		__pos = (
