@@ -48,6 +48,7 @@ import image
 
 def serve(request, path, document_root=None, show_indexes=False):
 	__argument = request.GET.copy()
+	__use_cache = not __argument.has_key("update")
 
 	__compress = __argument.get("compress", "").lower()
 	if __compress not in ("gzip", "deflate", ) :
@@ -69,29 +70,25 @@ def serve(request, path, document_root=None, show_indexes=False):
 
 		func_get_media = get_media_internal
 
-	(contents, mimetype, status_code, last_modified, ) = func_get_media(
-		request, fullpath)
+	(contents, mimetype, status_code, last_modified, response, ) = func_get_media(
+		request, fullpath, use_cache=__use_cache)
 
 	## Respect the If-Modified-Since header.
 	if status_code == 304 :
 		return HttpResponseNotModified()
 
-    # We use cache. If you did not enable the caching, nothing will be happended.
-	__path_cache = urllib.quote("%s?%s" % (fullpath, __argument.urlencode()), "")
-	__response = cache.get(__path_cache)
-	if __response :
-		return __response
+	if not response :
+		response = HttpResponse(
+			__compress and compress_string(contents, __compress) or contents,
+			mimetype=mimetype
+		)
+		response["Last-Modified"] = last_modified
 
-	response = HttpResponse(
-		__compress and compress_string(contents, __compress) or contents,
-		mimetype=mimetype
-	)
-	response["Last-Modified"] = last_modified
+		if __compress :
+			response["Content-Encoding"] = __compress
 
-	if __compress :
-		response["Content-Encoding"] = __compress
-
-	cache.set(__path_cache, response, CACHE_MIDDLEWARE_SECONDS)
+		__path_cache = urllib.quote("%s?%s" % (fullpath, __argument.urlencode()), "")
+		cache.set(__path_cache, response, CACHE_MIDDLEWARE_SECONDS)
 
 	return response
 
@@ -147,7 +144,7 @@ def func_text_html (request, path) :
 def func_default (request, path) :
 	return open(path, "rb").read()
 
-def get_media_external (request, path) :
+def get_media_external (request, path, use_cache=True) :
 	req = urllib2.Request(path)
 	if request.META.get("HTTP_REFERER", None) :
 		req.add_header("Referer", request.META.get("HTTP_REFERER"))
@@ -187,9 +184,9 @@ def get_media_external (request, path) :
 		contents = fn(request, path)
 		os.remove(path)
 
-	return (contents, mimetype, status_code, last_modified, )
+	return (contents, mimetype, status_code, last_modified, None, )
 
-def get_media_internal (request, path) :
+def get_media_internal (request, path, use_cache=True) :
 	statobj = os.stat(path)
 	(st_mtime, st_size, ) = (statobj[stat.ST_MTIME], statobj[stat.ST_SIZE], )
 
@@ -200,6 +197,15 @@ def get_media_internal (request, path) :
 		contents = None
 	else :
 		status_code = 200
+
+		if use_cache :
+			__argument = request.GET.copy()
+
+			# We use cache. If you did not enable the caching, nothing will be happended.
+			__path_cache = urllib.quote("%s?%s" % (path, __argument.urlencode()), "")
+			__response = cache.get(__path_cache)
+			if __response :
+				return (None, None, status_code, None, __response, )
 
 		# get media type
 		mimetype = mimetypes.guess_type(path)[0]
@@ -213,7 +219,7 @@ def get_media_internal (request, path) :
 
 		contents = fn(request, path)
 
-	return (contents, mimetype, status_code, rfc822.formatdate(st_mtime), )
+	return (contents, mimetype, status_code, rfc822.formatdate(st_mtime), None, )
 
 
 """
