@@ -32,6 +32,7 @@ Do you see your image?
 || width || integer || thumbnail image width ||
 || height || integer || thumbnail image height ||
 || mode || 'ratio'(default), 'sooa' || thumbnail style ||
+|| update|| <anything you want> || refresh ||
 
 == Creating By Image Size Ratio ==
  * `http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=ratio` : full query
@@ -46,9 +47,32 @@ Do you see your image?
 *Available Query String*
 || *key* || *type* || *description* ||
 || compress || 'gzip', 'deflate' || set whether compress the script file or not ||
+|| update|| <anything you want> || refresh ||
 
 
 = Access and Fetch the External Media ==
+== Image ==
+*Available Query String*
+|| *key* || *type* || *description* ||
+|| width || integer || thumbnail image width ||
+|| height || integer || thumbnail image height ||
+|| mode || 'ratio'(default), 'sooa' || thumbnail style ||
+|| update|| <anything you want> || refresh ||
+
+== Javascript ==
+*Available Query String*
+|| *key* || *type* || *description* ||
+|| compress || 'gzip', 'deflate' || set whether compress the script file or not ||
+|| update|| <anything you want> || refresh ||
+
+
+== plain text file like xml, html, or txt ==
+*Available Query String*
+|| *key* || *type* || *description* ||
+|| compress || 'gzip', 'deflate' || set whether compress the script file or not ||
+|| update|| <anything you want> || refresh ||
+
+
 It's so simple and support all feature of `Django Dynamic Media Serve`. 
 {{{
 http://<domain>/__media__/<base64 encoded URL>?<available query string>
