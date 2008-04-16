@@ -35,12 +35,12 @@ if hasattr(settings, "CACHE_MIDDLEWARE_SECONDS") :
 else :
 	CACHE_MIDDLEWARE_SECONDS = 10
 
-if hasattr(settings, "DOJ_TMP_DIR") :
-	DOJ_TMP_DIR = settings.DOJ_TMP_DIR
+if hasattr(settings, "DMS_TMP_DIR") :
+	DMS_TMP_DIR = settings.DMS_TMP_DIR
 else :
-	DOJ_TMP_DIR = "/tmp/doj/"
-	if not os.path.exists(DOJ_TMP_DIR) :
-		os.makedirs(DOJ_TMP_DIR)
+	DMS_TMP_DIR = "/tmp/dms/"
+	if not os.path.exists(DMS_TMP_DIR) :
+		os.makedirs(DMS_TMP_DIR)
 
 if hasattr(settings, "HTTP_EXPIRE_INTERVAL") :
 	HTTP_EXPIRE_INTERVAL = settings.HTTP_EXPIRE_INTERVAL
@@ -73,7 +73,7 @@ def serve (request, path, document_root=None, show_indexes=False) :
 		if not os.path.exists(fullpath) :
 			raise Http404, "'%s' does not exist" % fullpath
 
-		if os.path.isdir(fullpath) : # DOJ does not support directory index page.
+		if os.path.isdir(fullpath) : # DMS does not support directory index page.
 			raise Http404, "Directory indexes are not allowed here."
 
 		func_get_media = get_media_internal
@@ -246,7 +246,7 @@ def get_media_external (request, path, use_cache=True, ) :
 		# save in tmp
 		try :
 			path = "%s/%s%s" % (
-				DOJ_TMP_DIR,
+				DMS_TMP_DIR,
 				md5.new(str(random.random())).hexdigest(),
 				mimetypes.guess_extension(mimetype),
 			)
