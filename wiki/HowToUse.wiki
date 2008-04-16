@@ -33,6 +33,7 @@ Do you see your image?
 || height || integer || thumbnail image height ||
 || mode || 'ratio'(default), 'sooa' || thumbnail style ||
 || update|| <anything you want> || refresh ||
+|| force_mimetype|| <mimetype> || force to use this mimetype ||
 
 == Creating By Image Size Ratio ==
  * `http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=ratio` : full query
