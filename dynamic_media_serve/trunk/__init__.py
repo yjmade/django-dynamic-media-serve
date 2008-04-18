@@ -54,10 +54,12 @@ else :
 
 import image
 
-def serve (request, path, document_root=None, show_indexes=False) :
+def serve (request, path, document_root=None, show_indexes=False, force_mimetype=None) :
 	__argument = request.GET.copy()
 
-	force_mimetype = __argument.get("force_mimetype", "").strip()
+	if force_mimetype is None :
+		force_mimetype = __argument.get("force_mimetype", "").strip()
+
 	use_cache = not __argument.has_key("update")
 	if __argument.get("compress", "").lower() not in ("gzip", "deflate", ) :
 		compress = None
@@ -125,6 +127,9 @@ def was_modified_since (request, path) :
 	)
 
 def get_mime_handler (mimetype) :
+	if mimetype is None :
+		return func_default
+
 	__media_type = "func_%s" % mimetype.replace("/", "_").replace("-", "__")
 	if globals().has_key(__media_type) :
 		fn = globals().get(__media_type)
