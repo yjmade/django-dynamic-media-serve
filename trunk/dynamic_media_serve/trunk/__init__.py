@@ -98,6 +98,7 @@ def serve (request, path, document_root=None, show_indexes=False, force_mimetype
 		request,
 		fullpath,
 		use_cache=use_cache,
+		force_mimetype=force_mimetype,
 	)
 
 	response = HttpResponse(
@@ -223,7 +224,7 @@ def func_text_css (request, fd, path=None) :
 def func_default (request, fd, path=None) :
 	return fd.read()
 
-def get_media_external (request, path, use_cache=True, ) :
+def get_media_external (request, path, use_cache=True, force_mimetype=None) :
 	req = urllib2.Request(path)
 	if request.META.get("HTTP_REFERER", None) :
 		req.add_header("Referer", request.META.get("HTTP_REFERER"))
@@ -246,7 +247,10 @@ def get_media_external (request, path, use_cache=True, ) :
 		(contents, mimetype, status_code, last_modified, ) = (
 			"", None, e.code, e.headers.getheader("last-modified"), )
 	else :
-		mimetype = r.headers.getheader("content-type")
+		if force_mimetype :
+			mimetype = force_mimetype
+		else :
+			mimetype = r.headers.getheader("content-type")
 
 		# save in tmp
 		try :
@@ -269,9 +273,13 @@ def get_media_external (request, path, use_cache=True, ) :
 
 	return (contents, mimetype, status_code, last_modified, )
 
-def get_media_internal (request, path, use_cache=True) :
+def get_media_internal (request, path, use_cache=True, force_mimetype=None) :
 	# get media type
-	mimetype = mimetypes.guess_type(path)[0]
+	if force_mimetype :
+		mimetype = force_mimetype
+	else :
+		mimetype = mimetypes.guess_type(path)[0]
+
 	contents = get_mime_handler(mimetype)(request, file(path, "rb"), path=path)
 
 	return (
