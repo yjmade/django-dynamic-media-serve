@@ -67,8 +67,14 @@ def serve (request, path, document_root=None, show_indexes=False, force_mimetype
 		if True not in [i == compress for i in request.META.get("HTTP_ACCEPT_ENCODING", "").split(",") if i.strip()] :
 			compress = None
 
+	# for multibyte url handling.
+	path0 = list()
+	for i in path.split("/") :
+		path0.append(urllib.unquote(str(i)))
+
+	path = "/".join(path0)
 	if path.startswith("http%3A%2F%2F") or path.startswith("http://") :
-		fullpath =  urllib.unquote(path)
+		fullpath = path
 		func_get_media = get_media_external
 	else :
 		fullpath = os.path.join(document_root, path)
