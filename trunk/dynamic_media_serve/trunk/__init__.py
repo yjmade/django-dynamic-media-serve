@@ -107,6 +107,9 @@ def serve (request, path, document_root=None, show_indexes=False, force_mimetype
 		force_mimetype=force_mimetype,
 	)
 
+	if status_code == 304 :
+		return HttpResponseNotModified()
+
 	response = HttpResponse(
 		compress and compress_string(contents, compress) or contents,
 		mimetype=force_mimetype and force_mimetype or mimetype
