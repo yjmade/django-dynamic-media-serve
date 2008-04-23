@@ -56,6 +56,7 @@ import image
 
 def serve (request, path, document_root=None, show_indexes=False, force_mimetype=None) :
 	__argument = request.GET.copy()
+	document_root = os.path.abspath(document_root)
 
 	if force_mimetype is None :
 		force_mimetype = __argument.get("force_mimetype", "").strip()
@@ -77,7 +78,13 @@ def serve (request, path, document_root=None, show_indexes=False, force_mimetype
 		fullpath = path
 		func_get_media = get_media_external
 	else :
-		fullpath = os.path.join(document_root, path)
+		fullpath = os.path.abspath(os.path.join(document_root, path))
+
+		# prevent to follow up the prior directory.
+		if not fullpath.startswith(document_root) :
+			response = HttpResponse("", status=401)
+			return response
+
 		if not os.path.exists(fullpath) :
 			raise Http404, "'%s' does not exist" % fullpath
 
