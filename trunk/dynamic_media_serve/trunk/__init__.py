@@ -215,18 +215,21 @@ def func_image_svg_plus_xml (request, cf) :
 		convert = None
 
 	if convert and convert in ("png", ) :
-		s = svg.SVG(cf)
-		output = s.render(
-			outputtype=convert,
-			width=__argument.get("width"),
-			height=__argument.get("height"),
-		)
+		try :
+			s = svg.SVG(cf)
+			output = s.render(
+				outputtype=convert,
+				width=__argument.get("width"),
+				height=__argument.get("height"),
+			)
 
-		tmp = func_image(
-			request,
-			output
-		)
-		return tmp
+			tmp = func_image(
+				request,
+				output
+			)
+			return tmp
+		except :
+			return cf
 
 	return cf
 
