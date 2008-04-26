@@ -26,23 +26,30 @@ spike@spike:~/django-runtime$ cp /tmp/my_images/frontpage.png __media__
 Open the location, `http://<domain>/__media__/frontpage.png`.
 Do you see your image?
 
-= Get Dynamically Resizing Image =
+= Get Dynamically Resizing Or Cropping Image =
 *Available Query String*
 || *key* || *type* || *description* ||
 || width || integer || thumbnail image width ||
 || height || integer || thumbnail image height ||
-|| mode || 'ratio'(default), 'sooa' || thumbnail style ||
+|| mode || ''(default), 'flickr', 'sooa', 'topleft', 'topright', 'bottomleft', 'bottomright' || thumbnail style ||
 || update|| <anything you want> || refresh ||
+|| compress||  || compress the output, gzip or deflate, which browser support ||
+|| improve||  || when resizing 'gif' image, improve image quality using 'ALTIALIAS' filter. ||
 || force_mimetype|| <mimetype> || force to use this mimetype ||
 
 == Creating By Image Size Ratio ==
- * `http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=ratio` : full query
- * `http://<domain>/__media__/frontpage.png?width=<new width>&mode=ratio` : only width
- * `http://<domain>/__media__/frontpage.png?height=<new height>&mode=ratio` : only height
+ * `http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>` : full query
+ * `http://<domain>/__media__/frontpage.png?width=<new width>` : only width
+ * `http://<domain>/__media__/frontpage.png?height=<new height>` : only height
 
 == Creating Flicker Style Thumbnail ==
-`http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=sooa`
+`http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=flickr`
 
+== Cropping ==
+ * `http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=topleft`
+ * `http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=topright`
+ * `http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=bottomleft`
+ * `http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=bottomright`
 
 = Get The Compressed Javascript File =
 *Available Query String*
@@ -52,28 +59,6 @@ Do you see your image?
 
 
 = Access and Fetch the External Media ==
-== Image ==
-*Available Query String*
-|| *key* || *type* || *description* ||
-|| width || integer || thumbnail image width ||
-|| height || integer || thumbnail image height ||
-|| mode || 'ratio'(default), 'sooa' || thumbnail style ||
-|| update|| <anything you want> || refresh ||
-
-== Javascript ==
-*Available Query String*
-|| *key* || *type* || *description* ||
-|| compress || 'gzip', 'deflate' || set whether compress the script file or not ||
-|| update|| <anything you want> || refresh ||
-
-
-== plain text file like xml, html, or txt ==
-*Available Query String*
-|| *key* || *type* || *description* ||
-|| compress || 'gzip', 'deflate' || set whether compress the script file or not ||
-|| update|| <anything you want> || refresh ||
-
-
 It's so simple and support all feature of `Django Dynamic Media Serve`. 
 {{{
 http://<domain>/__media__/<base64 encoded URL>?<available query string>
@@ -123,3 +108,4 @@ Ajax.Request(
 );
 }}}
 The original url, `http://<my other managed domain>.com/get_my_profile/` was changed to `http%3A%2F%2F<my other managed domain>.com%2Fget_my_profile%2F`. To be clearly handle the URI, `Django Dynamic Media Serve` only get the `base64` encoded URI.
+

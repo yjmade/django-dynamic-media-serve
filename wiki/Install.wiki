@@ -4,16 +4,17 @@ You can install the `Django Dynamic Media Serve` easily.
 
 = Requirements =
  * Django :)
- * PIL
+ * PIL - Python Image Library
  * jsmin (`Django Dynamic Media Serve` alread include jsmin)
+ * rsvg - python-gnome2-desktop, ftp://ftp.gnome.org/pub/GNOME/sources/gnome-python-desktop/
+ * Pycairo - Python bindings for cairo, http://www.cairographics.org/pycairo
+
 
 = Download and Installation =
 Check out the svn sources.
 {{{
 spike@spike:~/tmp$ svn checkout http://django-dynamic-media-serve.googlecode.com/svn/trunk/dynamic_media_serve/trunk dynamic_media_serve
-A    dynamic_media_serve/__init__.py
-A    dynamic_media_serve/jsmin.py
-A    dynamic_media_serve/image.py
+A     ....
 }}}
 
 = Setup =
