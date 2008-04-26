@@ -36,7 +36,7 @@ class ContentFile (StringIO) :
 
 try :
 	import Image
-except :
+except ImportError :
 	def resize_image (*args, **kwargs) :
 		return open(args[0], "rb").read()
 else :

@@ -28,86 +28,96 @@ This is the derived work from,
 
 """
 
-import re, cairo, rsvg, os
+import re, os
 from image import ContentFile
 
-class SVG (object) :
-	LIMIT_SVG_WIDTH = 2000
-	LIMIT_SVG_HEIGHT = 5000
+try :
+	import cairo, rsvg
+except ImportError :
+	class SVG (object) :
+		def __init__ (self, cf) :
+			self.cf = cf
 
-	def __init__ (self, cf) :
-		self.cf = cf
-		self.svg = rsvg.Handle(file=self.cf.name)
+		def render (self, *args, **kwargs) :
+			raise
+else :
+	class SVG (object) :
+		LIMIT_SVG_WIDTH = 2000
+		LIMIT_SVG_HEIGHT = 5000
 
-	def set_dimensions (self, width=None, height=None) :
-		try : width = int(width)
-		except : width = None
+		def __init__ (self, cf) :
+			self.cf = cf
+			self.svg = rsvg.Handle(file=self.cf.name)
 
-		try : height = int(height)
-		except : height = None
+		def set_dimensions (self, width=None, height=None) :
+			try : width = int(width)
+			except : width = None
 
-		if width is None and height is None :
-			width = self.svg.props.width
-			height = self.svg.props.height
-		elif width is not None :
-			ratio = float(width) / self.svg.props.width
-			height = int(ratio * self.svg.props.height)
-		elif height is not None :
-			ratio = float(height) / self.svg.props.height
-			width = int(ratio * self.svg.props.width)
+			try : height = int(height)
+			except : height = None
 
-		if width > self.LIMIT_SVG_WIDTH or height > self.LIMIT_SVG_HEIGHT :
-			width = self.svg.props.width
-			height = self.svg.props.height
+			if width is None and height is None :
+				width = self.svg.props.width
+				height = self.svg.props.height
+			elif width is not None :
+				ratio = float(width) / self.svg.props.width
+				height = int(ratio * self.svg.props.height)
+			elif height is not None :
+				ratio = float(height) / self.svg.props.height
+				width = int(ratio * self.svg.props.width)
 
-		return (width, height, )
+			if width > self.LIMIT_SVG_WIDTH or height > self.LIMIT_SVG_HEIGHT :
+				width = self.svg.props.width
+				height = self.svg.props.height
 
-	def __render (self, outputtype="png", width=None, height=None, ) :
-		output = ContentFile("", name="%s.%s" % (self.cf.name, outputtype, ) )
+			return (width, height, )
 
-		width, height, = self.set_dimensions(width, height)
+		def __render (self, outputtype="png", width=None, height=None, ) :
+			output = ContentFile("", name="%s.%s" % (self.cf.name, outputtype, ) )
 
-		if outputtype == "pdf" :
-			self.surface = cairo.PDFSurface(output, width, height, )
-		elif outputtype == "ps" :
-			self.surface = cairo.PSSurface(output, width, height, )
-		elif outputtype == "png" :
-			self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
-		else :
-			raise Exception, "Must set the 'outputtype'."
+			width, height, = self.set_dimensions(width, height)
 
-		cr = cairo.Context(self.surface)
+			if outputtype == "pdf" :
+				self.surface = cairo.PDFSurface(output, width, height, )
+			elif outputtype == "ps" :
+				self.surface = cairo.PSSurface(output, width, height, )
+			elif outputtype == "png" :
+				self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
+			else :
+				raise Exception, "Must set the 'outputtype'."
 
-		wscale = float(width) / self.svg.props.width
-		hscale = float(height) / self.svg.props.height
+			cr = cairo.Context(self.surface)
 
-		cr.scale(wscale, hscale)
+			wscale = float(width) / self.svg.props.width
+			hscale = float(height) / self.svg.props.height
 
-		# create cairo
-		self.svg.render_cairo(cr)
+			cr.scale(wscale, hscale)
 
-		if outputtype == "png" :
-			self.surface.write_to_png(output)
+			# create cairo
+			self.svg.render_cairo(cr)
 
-		return output
+			if outputtype == "png" :
+				self.surface.write_to_png(output)
 
-	def render (self, width=None, height=None, outputtype=None, filename=None) :
-		"""
-		output, io is String.StringIO object.
-		"""
-		if outputtype is None and filename.strip() :
-			ext = os.path.splitext(filename)[-1]
-			if ext.startswith(".") :
-				outputtype = re.compile("^\.").sub("", ext)
+			return output
 
-		tmp = self.__render(
-			outputtype=outputtype,
-			width=width,
-			height=height,
-		)
+		def render (self, width=None, height=None, outputtype=None, filename=None) :
+			"""
+			output, io is String.StringIO object.
+			"""
+			if outputtype is None and filename.strip() :
+				ext = os.path.splitext(filename)[-1]
+				if ext.startswith(".") :
+					outputtype = re.compile("^\.").sub("", ext)
 
-		tmp.seek(0)
-		return tmp
+			tmp = self.__render(
+				outputtype=outputtype,
+				width=width,
+				height=height,
+			)
+
+			tmp.seek(0)
+			return tmp
 
 if __name__ == "__main__" :
 	import sys
