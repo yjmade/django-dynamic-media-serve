@@ -32,7 +32,7 @@ Do you see your image?
 || width || integer || thumbnail image width ||
 || height || integer || thumbnail image height ||
 || mode || ''(default), 'flickr', 'sooa', 'topleft', 'topright', 'bottomleft', 'bottomright' || thumbnail style ||
-|| update|| <anything you want> || refresh ||
+|| update|| || refresh ||
 || compress||  || compress the output, gzip or deflate, which browser support ||
 || improve||  || when resizing 'gif' image, improve image quality using 'ALTIALIAS' filter. ||
 || force_mimetype|| <mimetype> || force to use this mimetype ||
@@ -55,7 +55,7 @@ Do you see your image?
 *Available Query String*
 || *key* || *type* || *description* ||
 || compress || 'gzip', 'deflate' || set whether compress the script file or not ||
-|| update|| <anything you want> || refresh ||
+|| update|| || refresh ||
 
 
 = Access and Fetch the External Media ==
