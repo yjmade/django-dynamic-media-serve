@@ -17,18 +17,19 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-from django.http import Http404, HttpResponse, HttpResponseNotModified
+import os, zlib, md5, random, rfc822, stat
 import mimetypes, time, datetime
-import os, zlib, md5, random
-import rfc822
-import stat
 import urllib, urllib2
 
+from django.http import Http404, HttpResponse, HttpResponseNotModified
 from django.utils.text import compress_string as django_compress_string
 from django.views import static as django_static
 from django.core.cache import cache
 from django.conf import settings
-from django.template import RequestContext
+from django.template import Template, RequestContext
+
+import image, svg
+from image import ContentFile
 
 if hasattr(settings, "CACHE_MIDDLEWARE_SECONDS") :
 	CACHE_MIDDLEWARE_SECONDS = settings.CACHE_MIDDLEWARE_SECONDS
@@ -52,9 +53,13 @@ if hasattr(settings, "DEFAULT_IMAGE_RENDER_MODE") :
 else :
 	DEFAULT_IMAGE_RENDER_MODE = "ratio"
 
-import image
+def serve (request,
+			path,
+			document_root=None,
+			show_indexes=False,
+			force_mimetype=None,
+		) :
 
-def serve (request, path, document_root=None, show_indexes=False, force_mimetype=None) :
 	__argument = request.GET.copy()
 	document_root = os.path.abspath(document_root)
 
@@ -62,11 +67,13 @@ def serve (request, path, document_root=None, show_indexes=False, force_mimetype
 		force_mimetype = __argument.get("force_mimetype", "").strip()
 
 	use_cache = not __argument.has_key("update")
-	if __argument.get("compress", "").lower() not in ("gzip", "deflate", ) :
-		compress = None
-	else :
-		if True not in [i == compress for i in request.META.get("HTTP_ACCEPT_ENCODING", "").split(",") if i.strip()] :
-			compress = None
+
+	compress = None
+	if __argument.has_key("compress") :
+		try :
+			compress = list(set([i for i in request.META.get("HTTP_ACCEPT_ENCODING", "").split(",") if i.strip()]) & set(["gzip", "deflate"]))[0]
+		except :
+			pass
 
 	# for multibyte url handling.
 	path0 = list()
@@ -103,11 +110,11 @@ def serve (request, path, document_root=None, show_indexes=False, force_mimetype
 		if use_cache :
 			# We use cache. If you did not enable the caching,
 			# nothing will be happended.
-			response = cache.get(get_cache_name(request, path))
+			response = cache.get(get_cache_name(request))
 			if response :
 				return response
 
-	(contents, mimetype, status_code, last_modified, ) = func_get_media( \
+	(cf, mimetype, status_code, last_modified, ) = func_get_media( \
 		request,
 		fullpath,
 		use_cache=use_cache,
@@ -118,7 +125,7 @@ def serve (request, path, document_root=None, show_indexes=False, force_mimetype
 		return HttpResponseNotModified()
 
 	response = HttpResponse(
-		compress and compress_string(contents, compress) or contents,
+		compress and compress_string(cf.read(), compress) or cf.read(),
 		mimetype=force_mimetype and force_mimetype or mimetype
 	)
 	response["Last-Modified"] = last_modified
@@ -129,7 +136,7 @@ def serve (request, path, document_root=None, show_indexes=False, force_mimetype
 		response["Content-Encoding"] = compress
 
 	cache.set(
-		get_cache_name(request, fullpath),
+		get_cache_name(request),
 		response, CACHE_MIDDLEWARE_SECONDS,
 	)
 
@@ -143,21 +150,30 @@ def was_modified_since (request, path) :
 		statobj[stat.ST_SIZE]
 	)
 
-def get_mime_handler (mimetype) :
+def get_mime_handler (mimetype, force_mimetype=None) :
 	if mimetype is None :
-		return func_default
+		if force_mimetype is None :
+			return (func_default, None, )
+		else :
+			mimetype = force_mimetype
 
-	__media_type = "func_%s" % mimetype.replace("/", "_").replace("-", "__")
+	__media_type = "func_%s" % mimetype.replace("/", "_").replace("-", "__").replace("+", "_plus_")
+
 	if globals().has_key(__media_type) :
 		fn = globals().get(__media_type)
 	else :
 		__media_type = mimetype.split("/")[0]
 		fn = globals().get("func_%s" % __media_type, func_default)
 
-	return fn
+	return (fn, mimetype, )
 
-def get_cache_name (request, path) :
-	return urllib.quote("%s?%s" % (path, request.GET.urlencode()), "")
+def get_cache_name (request) :
+	return urllib.quote(
+		"%s?%s" % (
+			request.META.get("PATH_INFO"),
+			request.GET.urlencode()),
+		"",
+	)
 
 def get_etag (path) :
 	try :
@@ -174,26 +190,47 @@ def compress_string (s, mode="gzip") :
 		return zlib.compress(s)
 	else :
 		return s
-from django.template import Template
-def get_rendered_to_string (request, content) :
+
+def get_rendered_to_string (request, cf) :
 	if not request.GET.has_key("use_template") :
-		return content
+		return cf
 	else :
 		try :
-			t = Template(content)
-			return t.render(RequestContext(request))
+			t = Template(cf.read())
+			return ContentFile(t.render(RequestContext(request)), name=cf.name)
 		except Exception, e :
 			if settings.DEBUG :
 				print e
 
-			return content
+			return cf
 
 ##################################################
 # Mimetype handler
-def func_image (request, fd, path=None) :
-	if path is None :
-		return fd.read()
+def func_image_svg_plus_xml (request, cf) :
+	__argument = request.GET.copy()
 
+	try :
+		convert = mimetypes.guess_extension(__argument.get("force_mimetype", "").strip()).split(".")[1]
+	except :
+		convert = None
+
+	if convert and convert in ("png", ) :
+		s = svg.SVG(cf)
+		output = s.render(
+			outputtype=convert,
+			width=__argument.get("width"),
+			height=__argument.get("height"),
+		)
+
+		tmp = func_image(
+			request,
+			output
+		)
+		return tmp
+
+	return cf
+
+def func_image (request, cf) :
 	__argument = request.GET.copy()
 
 	__mode = __argument.get("mode", DEFAULT_IMAGE_RENDER_MODE, )
@@ -215,30 +252,36 @@ def func_image (request, fd, path=None) :
 		__height = (__height > 0) and __height or None
 
 	if __width or __height :
+		return image.resize_image(
+			cf,
+			(__width, __height, ),
+			mode=__mode,
+			direction=__direction,
+			improve=request.GET.has_key("improve"),
+		)
 		try :
 			return image.resize_image(
-				path,
+				cf,
 				(__width, __height, ),
 				mode=__mode,
 				direction=__direction
 			)
 		except Exception, e :
 			print "[EE]" , e
-			pass
 
-	return fd.read()
+	return cf
 
-def func_application_x__javascript (request, fd, path=None) :
-	return get_rendered_to_string(request, fd.read())
+def func_application_x__javascript (request, cf) :
+	return get_rendered_to_string(request, cf)
 
-def func_text_html (request, fd, path=None) :
-	return get_rendered_to_string(request, fd.read())
+def func_text_html (request, cf) :
+	return get_rendered_to_string(request, cf)
 
-def func_text_css (request, fd, path=None) :
-	return get_rendered_to_string(request, fd.read())
+def func_text_css (request, cf) :
+	return get_rendered_to_string(request, cf)
 
-def func_default (request, fd, path=None) :
-	return fd.read()
+def func_default (request, cf) :
+	return cf
 
 def get_media_external (request, path, use_cache=True, force_mimetype=None) :
 	req = urllib2.Request(path)
@@ -260,7 +303,7 @@ def get_media_external (request, path, use_cache=True, force_mimetype=None) :
 	try :
 		r = urllib2.urlopen(req)
 	except urllib2.HTTPError, e :
-		(contents, mimetype, status_code, last_modified, ) = (
+		(cf, mimetype, status_code, last_modified, ) = (
 			"", None, e.code, e.headers.getheader("last-modified"), )
 	else :
 		if force_mimetype :
@@ -268,43 +311,20 @@ def get_media_external (request, path, use_cache=True, force_mimetype=None) :
 		else :
 			mimetype = r.headers.getheader("content-type")
 
-		# save in tmp
-		try :
-			path = "%s/%s%s" % (
-				DMS_TMP_DIR,
-				md5.new(str(random.random())).hexdigest(),
-				mimetypes.guess_extension(mimetype),
-			)
-			tmp = file(path, "w")
-			tmp.write(r.read())
-			tmp.close()
-		except :
-			return (r.read(), mimetype, status_code, last_modified, )
-
 		last_modified = r.headers.getheader("last-modified")
 		status_code = 200
 
-		contents = get_mime_handler(mimetype)(request, file(path, "rb"), path=path)
-		os.remove(path)
+		(fn, mimetype, ) = get_mime_handler(mimetype)
+		cf = fn(request, ContentFile(r.read(), name=path), )
+		r.close()
 
-	return (contents, mimetype, status_code, last_modified, )
+	return (cf, mimetype, status_code, last_modified, )
 
 def get_media_internal (request, path, use_cache=True, force_mimetype=None) :
-	# get media type
-	if force_mimetype :
-		mimetype = force_mimetype
-	else :
-		mimetype = mimetypes.guess_type(path)[0]
+	(fn, mimetype, ) = get_mime_handler(mimetypes.guess_type(path)[0])
+	cf = fn(request, ContentFile(file(path, "rb").read(), name=path, ), )
 
-	contents = get_mime_handler(mimetype)(request, file(path, "rb"), path=path)
-
-	return (
-		contents,
-		mimetype,
-		200,
-		rfc822.formatdate(os.stat(path)[stat.ST_MTIME]),
-	)
-
+	return (cf, mimetype, 200, rfc822.formatdate(os.stat(path)[stat.ST_MTIME]), )
 
 """
 Description

@@ -18,6 +18,21 @@
 """
 
 import urllib, os
+from StringIO import StringIO
+
+class ContentFile (StringIO) :
+
+	def __init__ (self, content, name=None) :
+		StringIO.__init__(self, content)
+		self.name = name
+
+	def read (self, size=None) :
+		o = StringIO.read(self, size)
+
+		if not size :
+			self.seek(0)
+
+		return o
 
 try :
 	import Image
@@ -92,8 +107,8 @@ else :
 
 		return ((int(w), int(h), ), __pos, )
 
-	def resize_image (path, size=(200, 200), mode="ratio", direction="center") :
-		im = Image.open(path)
+	def resize_image (cf, size=(200, 200), mode="ratio", direction="center", improve=False, ) :
+		im = Image.open(cf)
 
 		(w, h, ) = im.size
 
@@ -101,18 +116,47 @@ else :
 		h_new = size[1]
 
 		if w_new > w and h_new > h :
-			return open(path, "rb").read()
+			return cf
 
 		if not w_new or not h_new :
 			mode="ratio"
 
-		#if (w_new is not None or h_new is not None) and mode == "sooa" :
+		if (w_new is not None or h_new is not None) and \
+					mode in ("topleft", "topright", "bottomleft", "bottomright", ) :
 
-		if (w_new is not None or h_new is not None) and mode == "sooa" :
+			__w = (w_new < w) and w_new or w
+			__h = (h_new < h) and h_new or h
+
+			if mode == "topleft" :
+				offset = (0, 0, __w, __h, )
+			elif mode == "topright" :
+				offset = (
+					(w_new < w) and w - w_new or 0,
+					0,
+					((w_new < w) and w - w_new or 0) + __w,
+					__h,
+				)
+			elif mode == "bottomleft" :
+				offset = (
+					0,
+					(h_new < h) and h - h_new or 0,
+					__w,
+					((h_new < h) and h - h_new or 0) + __h,
+				)
+			elif mode == "bottomright" :
+				offset = (
+					(w_new < w) and w - w_new or 0,
+					(h_new < h) and h - h_new or 0,
+					((w_new < w) and w - w_new or 0) + __w,
+					((h_new < h) and h - h_new or 0) + __h,
+				)
+
+			im = im.crop(offset)
+		elif (w_new is not None or h_new is not None) and mode == "sooa" :
 			((w, h, ), __pos, ) = get_image_offset_sooa(im.size, size, direction, )
 			im = im.resize((w, h, ), Image.ANTIALIAS)
 			im = im.crop(__pos)
-		elif (w_new is not None or h_new is not None) and mode == "flickr_center" :
+		elif (w_new is not None or h_new is not None) and mode == "flickr" :
 			if h_new and h > h_new :
 				__ratio = float(h_new) / float(h)
 				h = h_new
@@ -131,15 +175,6 @@ else :
 						h,
 					)
 				)
-		elif (w_new is not None or h_new is not None) and mode == "flickr" :
-			im = im.crop(
-				(
-					0,
-					0,
-					(w_new < w) and w_new or w,
-					(h_new < h) and h_new or h,
-				)
-			)
 		else :
 			if w_new and w > w_new :
 				__ratio = float(w_new) / float(w)
@@ -152,20 +187,26 @@ else :
 				w = w * __ratio
 
 			# resizing
+			if improve :
+				im = im.convert("RGB")
+				cf.name += ".png"
+
 			im = im.resize((int(w), int(h), ), Image.ANTIALIAS)
 
-		__path = os.path.join("/tmp", urllib.quote(path, ""))
 		try :
-			im.save(__path, **im.info)
+			if not os.path.splitext(cf.name)[1].strip() :
+				cf.name += ".png"
+		except :
+			cf.name += ".png"
+
+		tmp = ContentFile("", name=cf.name)
+		try :
+			im.save(tmp, **im.info)
 		except KeyError, e :
-			__path += ".jpg"
+			return cf
 
-			im.save(__path, **im.info)
-
-		contents = open(__path, "rb").read()
-		os.remove(__path)
-
-		return contents
+		tmp.seek(0)
+		return tmp
 
 
 
