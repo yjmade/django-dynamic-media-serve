@@ -17,7 +17,7 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 """
 
-import urllib, os
+import urllib, os, warnings
 from StringIO import StringIO
 
 class ContentFile (StringIO) :
@@ -37,6 +37,7 @@ class ContentFile (StringIO) :
 try :
 	import Image
 except ImportError :
+	warnings.warn("[EE] Failed to import 'Image' module. Install PIL python package.", RuntimeWarning)
 	def resize_image (*args, **kwargs) :
 		return open(args[0], "rb").read()
 else :
