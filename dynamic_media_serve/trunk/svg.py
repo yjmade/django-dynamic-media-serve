@@ -28,12 +28,14 @@ This is the derived work from,
 
 """
 
-import re, os
+import re, os, warnings
 from image import ContentFile
 
 try :
 	import cairo, rsvg
 except ImportError :
+	warnings.warn("[EE] Failed to import 'cairo' and 'rsvg' module. Install these python package.", RuntimeWarning)
+
 	class SVG (object) :
 		def __init__ (self, cf) :
 			self.cf = cf
