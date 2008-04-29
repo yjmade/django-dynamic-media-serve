@@ -135,7 +135,7 @@ else :
 		elif (w_new is not None or h_new is not None) and mode == "sooa" :
 			((w, h, ), __pos, ) = get_image_offset_sooa(im.size, size, )
 
-			if improve :
+			if improve and im.format == "GIF" :
 				im = im.convert("RGB")
 				cf.name += ".png"
 
@@ -148,7 +148,7 @@ else :
 				w = w * __ratio
 
 			# resizing
-			if improve :
+			if improve and im.format == "GIF" :
 				im = im.convert("RGB")
 				cf.name += ".png"
 
@@ -176,7 +176,7 @@ else :
 				w = w * __ratio
 
 			# resizing
-			if improve :
+			if improve and im.format == "GIF" :
 				im = im.convert("RGB")
 				cf.name += ".png"
 

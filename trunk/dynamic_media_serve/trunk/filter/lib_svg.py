@@ -128,9 +128,9 @@ if __name__ == "__main__" :
 	width = 600
 	height = None
 
-	f = "test/tiger.svg"
+	f = "tiger.svg"
 
-	s = SVG(f)
+	s = SVG(file(f))
 	o = s.render(width=600, filename=k)
 
 	sys.exit()
