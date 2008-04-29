@@ -111,7 +111,7 @@ def serve (request,
 		"compress": compress,
 		"force_mimetype": force_mimetype,
 		"width": width,
-		"height": width,
+		"height": height,
 		"improve": improve,
 		"mode": mode,
 	}
