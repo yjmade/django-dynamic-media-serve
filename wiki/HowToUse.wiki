@@ -1,6 +1,6 @@
 #summary How to use django-dynamic-media-serve in real world.
 
-After install the Django and `Django Dynamic Media Serve`, run or restart your web server.
+After install the Django and `Django Dynamic Media Serve`, restart your web server.
 
 = Post Installation =
 == Locate Your Media ==
@@ -32,9 +32,9 @@ Do you see your image?
 || width || integer || thumbnail image width ||
 || height || integer || thumbnail image height ||
 || mode || ''(default), 'flickr', 'sooa', 'topleft', 'topright', 'bottomleft', 'bottomright' || thumbnail style ||
-|| update|| || refresh ||
-|| compress||  || compress the output, gzip or deflate, which browser support ||
-|| improve||  || when resizing 'gif' image, improve image quality using 'ALTIALIAS' filter. ||
+|| update||'1', '0' || refresh ||
+|| compress||'1', '0'  || compress the output, gzip or deflate, which browser support ||
+|| improve||'1', '0'  || when resizing 'gif' image, improve image quality using 'ALTIALIAS' filter. ||
 || force_mimetype|| <mimetype> || force to use this mimetype ||
 
 == Creating By Image Size Ratio ==
@@ -51,17 +51,81 @@ Do you see your image?
  * `http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=bottomleft`
  * `http://<domain>/__media__/frontpage.png?width=<new width>&height=<new height>&mode=bottomright`
 
-= Get The Compressed Javascript File =
+== Convert SVG to PNG, JPEG, GIF ==
+In the development version, we support 'svg' file converting to other image format, such as `PNG`, `JPEG`, `GIF` or other image format supported by `PIL`(`Python Image Library`).
+
+To convert, add target format as `force_mimetype` in query string
+ * `http://<domain>/__svg_to_png__/tiger.svg?force_mimetype=image/png`
+
+You can also use other options, `width`, `height`, `mode` in there and external media
+handling.
+ * `http://<domain>/__svg_to_png__/tiger.svg?force_mimetype=image/png&width=100&height=200&mode=topleft`
+
+
+ * SVG filter preserve the original transparent alpha channel.
+
+= Get The Compressed Response For Performance =
 *Available Query String*
 || *key* || *type* || *description* ||
-|| compress || 'gzip', 'deflate' || set whether compress the script file or not ||
-|| update|| || refresh ||
-
+|| compress || '1', '0' || set whether compress the script file or not ||
 
 = Access and Fetch the External Media ==
 It's so simple and support all feature of `Django Dynamic Media Serve`. 
 {{{
 http://<domain>/__media__/<base64 encoded URL>?<available query string>
+}}}
+
+= Usages =
+== Create your own media channel in urls.py ==
+In the development version of `Django Dynamic Media Serve`, create your own channel,
+which has default options.
+
+I use `Django Dynamic Media Serve` to filter the svg to png with 100x100 size.
+
+this is my urls.py.
+{{{
+urlpatterns = patterns("",
+	....
+	# fetch the image from flickr
+	(
+		r"^__flickr__/http://www.flickr.com/photos/smoothdude/(?P<path>.*)$",
+		"dynamic_media_serve.serve",
+		{
+			"document_root": "/my_django_root/media/image/",
+			"update": False,
+			"compress": True,
+			"width": 400,
+			"height": 300,
+		}
+	),
+
+	# convert svg to png with 100x100 size.
+	(
+		r"^__svg2png100x100__/(?P<path>.*)$",
+		"dynamic_media_serve.serve",
+		{
+			"document_root": "/my_django_root/media/svg/",
+			"update": False,
+			"compress": True,
+			"width": 100,
+			"height": 100,
+			"force_mimetype": "image/png",
+		}
+	),
+
+	# css with i18n thru django template. It translate i18n message.
+	(
+		r"^__css_i18n__/(?P<path>.*)$",
+		"dynamic_media_serve.serve",
+		{
+			"document_root": "/my_django_root/media/css/",
+			"update": False,
+			"compress": True,
+			"use_template": True,
+		}
+	),
+	....
+
 }}}
 
 == Cross-Domain Access ==
