@@ -124,7 +124,7 @@ def serve (request,
 		return HttpResponseNotModified()
 	else :
 		# check MAX_FILE_SIZE_COMPRESS
-		if os.stat(fullpath)[stat.ST_SIZE] > MAX_FILE_SIZE_COMPRESS :
+		if func_get_media == get_media_internal and os.stat(fullpath)[stat.ST_SIZE] > MAX_FILE_SIZE_COMPRESS :
 			compress = None
 			kwargs.update({"compress": compress, })
 
