@@ -81,7 +81,11 @@ def serve (request,
 			raise Http404, "'%s' does not exist" % fullpath
 
 		if os.path.isdir(fullpath) : # DMS does not support directory index page.
-			raise Http404, "Directory indexes are not allowed here."
+			if show_indexes :
+				return django_static.serve(request, path=path, document_root=document_root, show_indexes=True, )
+			else :
+				raise Http404, "Directory indexes are not allowed here."
+
 
 		func_get_media = get_media_internal
 
